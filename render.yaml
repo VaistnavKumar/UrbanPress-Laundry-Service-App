@@ -5,6 +5,7 @@ services:
     runtime: docker
     dockerContext: ./backend
     dockerfilePath: Dockerfile
+    healthCheckPath: /healthz
     envVars:
       # Nginx listening port
       - key: PORT
