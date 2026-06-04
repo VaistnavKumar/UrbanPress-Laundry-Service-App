@@ -1,4 +1,5 @@
 FROM node:18-alpine
+LABEL build_version="2026-06-04-v3"
 
 # Install nginx and bash
 RUN apk add --no-cache nginx bash

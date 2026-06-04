@@ -8,12 +8,18 @@ app.use(express.json())
 const port = process.env.PORT || 5001
 const jwtSecret = process.env.JWT_SECRET || 'fallback_secret'
 
+// Log key startup info
+console.log(`[auth-service] Starting on port ${port}`)
+console.log(`[auth-service] DATABASE_URL set: ${!!process.env.DATABASE_URL}`)
+console.log(`[auth-service] JWT_SECRET set: ${!!process.env.JWT_SECRET}`)
+
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
 })
 
-// Schema verification — create table if not exists, add google_id column if missing
+// Schema verification
 async function initDB() {
   try {
     await pool.query(`
@@ -28,22 +34,26 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `)
-    // Safely add google_id column if the table already existed without it
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(100);
-    `)
-    // Make password nullable if it isn't already (for Google users)
-    await pool.query(`
-      ALTER TABLE users ALTER COLUMN password DROP NOT NULL;
-    `).catch(() => {}) // Ignore if already nullable
-    console.log('✅ Postgres users table verified.')
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(100);`)
+    await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL;`).catch(() => {})
+    console.log('[auth-service] ✅ Postgres users table verified.')
   } catch (err) {
-    console.error('❌ Failed to verify users table:', err.message)
+    console.error('[auth-service] ❌ DB init error:', err.message)
   }
 }
 initDB()
 
-// ── Register ─────────────────────────────────────────────────────────────────
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get('/api/auth/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1')
+    res.json({ status: 'ok', db: 'connected' })
+  } catch (err) {
+    res.status(500).json({ status: 'error', db: err.message })
+  }
+})
+
+// ── Register ──────────────────────────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password, phone } = req.body
   if (!name || !email || !password) {
@@ -62,8 +72,9 @@ app.post('/api/auth/register', async (req, res) => {
     if (err.code === '23505') {
       return res.status(400).json({ error: 'Email address already registered' })
     }
-    console.error('Registration error:', err.message)
-    res.status(500).json({ error: 'Registration failed' })
+    console.error('[auth-service] Registration error:', err.message)
+    // Return specific error for easier debugging
+    res.status(500).json({ error: `Registration failed: ${err.message}` })
   }
 })
 
@@ -88,8 +99,8 @@ app.post('/api/auth/login', async (req, res) => {
     const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '7d' })
     res.json({ token, user })
   } catch (err) {
-    console.error('Login error:', err.message)
-    res.status(500).json({ error: 'Authentication failed' })
+    console.error('[auth-service] Login error:', err.message)
+    res.status(500).json({ error: `Authentication failed: ${err.message}` })
   }
 })
 
@@ -101,18 +112,16 @@ app.post('/api/auth/google', async (req, res) => {
   }
 
   try {
-    // Verify Google token via Google's public tokeninfo endpoint (no extra library needed)
     const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`)
     const payload = await googleRes.json()
 
     if (payload.error || !payload.email) {
-      console.error('Google token invalid:', payload.error)
+      console.error('[auth-service] Google token invalid:', payload.error)
       return res.status(401).json({ error: 'Invalid Google token' })
     }
 
-    const { sub: googleId, email, name, picture } = payload
+    const { sub: googleId, email, name } = payload
 
-    // Check if user already exists
     let result = await pool.query(
       'SELECT id, name, email, phone, location FROM users WHERE email = $1',
       [email]
@@ -120,14 +129,12 @@ app.post('/api/auth/google', async (req, res) => {
 
     let user
     if (result.rows.length === 0) {
-      // New user — create account automatically
       const insertResult = await pool.query(
         'INSERT INTO users (name, email, google_id) VALUES ($1, $2, $3) RETURNING id, name, email, phone, location',
         [name || email.split('@')[0], email, googleId]
       )
       user = insertResult.rows[0]
     } else {
-      // Existing user — update google_id if not set
       await pool.query(
         'UPDATE users SET google_id = $1 WHERE email = $2 AND google_id IS NULL',
         [googleId, email]
@@ -138,11 +145,11 @@ app.post('/api/auth/google', async (req, res) => {
     const jwtToken = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '7d' })
     res.json({ token: jwtToken, user })
   } catch (err) {
-    console.error('Google auth error:', err.message)
-    res.status(500).json({ error: 'Google authentication failed' })
+    console.error('[auth-service] Google auth error:', err.message)
+    res.status(500).json({ error: `Google authentication failed: ${err.message}` })
   }
 })
 
 app.listen(port, () => {
-  console.log(`✅ Auth service running on port ${port}`)
+  console.log(`[auth-service] ✅ Running on port ${port}`)
 })
