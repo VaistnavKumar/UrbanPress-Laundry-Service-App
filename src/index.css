@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Variables (Warm Cream & White Theme) ────────────────────────────── */
+:root {
+  --color-app-bg:       #F4F3ED;
+  --color-app-surface:  #FFFFFF;
+  --color-app-card:     #FFFFFF;
+  --color-primary:      #111827;
+  --color-accent:       #F5D170;
+  --color-accent-light: #FDF8E7;
+  --color-sky:          #F5D170;
+  --color-light:        #F9FAFB;
+  --color-text:         #1F2937;
+  --color-muted:        #6B7280;
+  --color-border:       #E5E7EB;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #F4F3ED;
+    color: #1F2937;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    color: #111827;
+  }
+}
+
+/* ── Components ────────────────────────────────────────────────────────── */
+@layer components {
+  /* Primary CTA — gold button */
+  .btn-primary {
+    background-color: #F5D170;
+    color: #111827;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(245, 209, 112, 0.2);
+    transition: all 0.15s;
+  }
+  .btn-primary:active { transform: scale(0.95); }
+
+  /* Soft secondary */
+  .btn-secondary {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    color: #111827;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+    border-radius: 14px;
+    transition: all 0.15s;
+  }
+  .btn-secondary:active { transform: scale(0.95); }
+
+  /* Premium White card with soft shadow */
+  .card {
+    background-color: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Input on light */
+  .input {
+    width: 100%;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.875rem;
+    color: #0F172A;
+    transition: all 0.15s;
+  }
+  .input::placeholder { color: #94A3B8; }
+  .input:focus {
+    outline: none;
+    border-color: #F5D170;
+    box-shadow: 0 0 0 3px rgba(245, 209, 112, 0.15);
+  }
+
+  /* Glass — dark (adapted for light theme overlays) */
+  .glass-dark {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(245, 209, 112, 0.08);
+  }
+
+  /* Glass — light */
+  .glass-light {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Status badges */
+  .badge-scheduled        { background: #FDF8E7; color: #B45309; border: 1px solid #FEF3C7; }
+  .badge-picked_up        { background: #FFFBEB; color: #D97706; border: 1px solid #FEF3C7; }
+  .badge-in_laundry       { background: #FDF4FF; color: #C084FC; border: 1px solid #FAE8FF; }
+  .badge-out_for_delivery { background: #ECFDF5; color: #059669; border: 1px solid #D1FAE5; }
+  .badge-delivered        { background: #F0FDF4; color: #16A34A; border: 1px solid #DCFCE7; }
+  .badge-cancelled        { background: #FEF2F2; color: #DC2626; border: 1px solid #FEE2E2; }
+}
+
+/* ── Utilities ─────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Gradient text */
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #111827, #F5D170);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* iOS safe area */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* ── Toast animations ──────────────────────────────────────────────────── */
+@keyframes enter {
+  0%   { transform: translateY(8px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes leave {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(8px) scale(0.96); opacity: 0; }
+}
+.animate-enter { animation: enter 0.2s ease-out; }
+.animate-leave { animation: leave 0.15s ease-in forwards; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(2, 132, 199, 0.15); border-radius: 99px; }

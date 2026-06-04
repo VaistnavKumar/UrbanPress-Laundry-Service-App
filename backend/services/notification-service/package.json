@@ -1,0 +1,15 @@
+{
+  "name": "urbanpress-notification-service",
+  "version": "1.0.0",
+  "description": "Background Asynchronous Notification Processing Service",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.8.0",
+    "ioredis": "^5.4.1",
+    "axios": "^1.7.2"
+  }
+}

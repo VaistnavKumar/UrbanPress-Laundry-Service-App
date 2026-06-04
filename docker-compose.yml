@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # ── Databases ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: urbanpress-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: urbanpress_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:6-jammy
+    container_name: urbanpress-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: urbanpress-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  # ── API Gateway ────────────────────────────────────────────────────────────
+  api-gateway:
+    image: nginx:alpine
+    container_name: urbanpress-api-gateway
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - booking-service
+      - order-service
+      - payment-service
+
+  # ── Microservices ──────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: services/auth-service/Dockerfile
+    container_name: urbanpress-auth-service
+    restart: always
+    environment:
+      PORT: 5001
+      DATABASE_URL: postgres://admin:supersecretpassword@postgres:5432/urbanpress_db
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - postgres
+
+  booking-service:
+    build:
+      context: ./backend
+      dockerfile: services/booking-service/Dockerfile
+    container_name: urbanpress-booking-service
+    restart: always
+    environment:
+      PORT: 5002
+      DATABASE_URL: postgres://admin:supersecretpassword@postgres:5432/urbanpress_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  order-service:
+    build:
+      context: ./backend
+      dockerfile: services/order-service/Dockerfile
+    container_name: urbanpress-order-service
+    restart: always
+    environment:
+      PORT: 5003
+      DATABASE_URL: postgres://admin:supersecretpassword@postgres:5432/urbanpress_db
+      MONGO_URI: mongodb://mongodb:27017/urbanpress_garments
+    depends_on:
+      - postgres
+      - mongodb
+
+  payment-service:
+    build:
+      context: ./backend
+      dockerfile: services/payment-service/Dockerfile
+    container_name: urbanpress-payment-service
+    restart: always
+    environment:
+      PORT: 5004
+      DATABASE_URL: postgres://admin:supersecretpassword@postgres:5432/urbanpress_db
+      REDIS_URL: redis://redis:6379
+      RAZORPAY_KEY_ID: ${VITE_RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+    depends_on:
+      - postgres
+      - redis
+
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: services/notification-service/Dockerfile
+    container_name: urbanpress-notification-service
+    restart: always
+    environment:
+      REDIS_URL: redis://redis:6379
+      RESEND_API_KEY: ${VITE_RESEND_API_KEY}
+    depends_on:
+      - redis
+
+volumes:
+  pgdata:
+  mongodata:
+  redisdata:
