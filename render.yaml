@@ -1,22 +1,22 @@
-services:
-  # ── Databases ──────────────────────────────────────────────────────────────
-  # Managed PostgreSQL Database
-  - type: db
-    name: urbanpress-postgres
+databases:
+  - name: urbanpress-postgres
     plan: free
-    ipAllowList: [] # Allows internal and external secure connections
+    ipAllowList: []
 
-  # Managed Redis Cache
-  - type: redis
+services:
+  # ── Private Database Cache Services ────────────────────────────────────────
+  # Managed Redis Cache (Render native Key Value store)
+  - type: keyvalue
     name: urbanpress-redis
     plan: free
     ipAllowList: []
 
   # MongoDB Instance (runs as a private service)
-  - type: pservice
+  - type: pserv
     name: mongodb
-    env: docker
-    dockerImage: mongo:6-jammy
+    runtime: image
+    image:
+      url: mongo:6-jammy
     disk:
       name: mongodb-data
       mountPath: /data/db
@@ -26,69 +26,63 @@ services:
   # Notification Service
   - type: worker
     name: notification-service
-    env: docker
-    dockercontext: ./backend
-    dockerfile: services/notification-service/Dockerfile
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: services/notification-service/Dockerfile
     envVars:
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: urbanpress-redis
           property: connectionString
       - key: RESEND_API_KEY
+        sync: false
 
   # ── Private Microservices ──────────────────────────────────────────────────
   # Auth Service
-  - type: pservice
+  - type: pserv
     name: auth-service
-    env: docker
-    dockercontext: ./backend
-    dockerfile: services/auth-service/Dockerfile
-    ports:
-      - key: PORT
-        value: 5001
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: services/auth-service/Dockerfile
     envVars:
       - key: PORT
-        value: 5001
+        value: "5001"
       - key: DATABASE_URL
         fromDatabase:
           name: urbanpress-postgres
           property: connectionString
       - key: JWT_SECRET
-        generate: true
+        generateValue: true
 
   # Booking Service
-  - type: pservice
+  - type: pserv
     name: booking-service
-    env: docker
-    dockercontext: ./backend
-    dockerfile: services/booking-service/Dockerfile
-    ports:
-      - key: PORT
-        value: 5002
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: services/booking-service/Dockerfile
     envVars:
       - key: PORT
-        value: 5002
+        value: "5002"
       - key: DATABASE_URL
         fromDatabase:
           name: urbanpress-postgres
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: urbanpress-redis
           property: connectionString
 
   # Order Service
-  - type: pservice
+  - type: pserv
     name: order-service
-    env: docker
-    dockercontext: ./backend
-    dockerfile: services/order-service/Dockerfile
-    ports:
-      - key: PORT
-        value: 5003
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: services/order-service/Dockerfile
     envVars:
       - key: PORT
-        value: 5003
+        value: "5003"
       - key: DATABASE_URL
         fromDatabase:
           name: urbanpress-postgres
@@ -97,38 +91,35 @@ services:
         value: mongodb://mongodb:27017/urbanpress_garments
 
   # Payment Service
-  - type: pservice
+  - type: pserv
     name: payment-service
-    env: docker
-    dockercontext: ./backend
-    dockerfile: services/payment-service/Dockerfile
-    ports:
-      - key: PORT
-        value: 5004
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: services/payment-service/Dockerfile
     envVars:
       - key: PORT
-        value: 5004
+        value: "5004"
       - key: DATABASE_URL
         fromDatabase:
           name: urbanpress-postgres
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: urbanpress-redis
           property: connectionString
       - key: RAZORPAY_KEY_ID
+        sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
 
   # ── Public API Gateway ─────────────────────────────────────────────────────
   # Nginx Gateway
   - type: web
     name: api-gateway
-    env: docker
-    dockercontext: ./backend
-    dockerfile: api-gateway/Dockerfile
-    ports:
-      - key: PORT
-        value: 5000
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: api-gateway/Dockerfile
     envVars:
       - key: PORT
-        value: 5000
+        value: "5000"
