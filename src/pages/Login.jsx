@@ -40,7 +40,7 @@ export default function Login() {
       if (!err.response) {
         toast.error('Server is currently unreachable. Please check your network connection.')
       } else {
-        toast.error(err.response?.data?.message || 'Invalid email or password')
+        toast.error(err.response?.data?.error || err.response?.data?.message || 'Invalid email or password')
       }
     } finally {
       setLoading(false)
@@ -59,7 +59,7 @@ export default function Login() {
       if (!err.response) {
         toast.error('Server is currently unreachable. Please check your network connection.')
       } else {
-        toast.error(err.response?.data?.message || 'Google sign-in failed. Try again.')
+        toast.error(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Try again.')
       }
     } finally {
       setLoading(false)

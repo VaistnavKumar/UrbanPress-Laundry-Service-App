@@ -46,7 +46,7 @@ export default function Register() {
       toast.success('Account created! Please login 🎉')
       navigate('/login')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed')
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Registration failed')
     } finally {
       setLoading(false)
     }
